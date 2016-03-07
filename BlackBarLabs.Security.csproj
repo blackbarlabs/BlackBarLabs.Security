@@ -96,7 +96,6 @@
   <ItemGroup>
     <Compile Include="ClaimIds.cs" />
     <Compile Include="Tokens\JwtTools.cs" />
-    <Compile Include="Crypto\CryptoHashes.cs" />
     <Compile Include="Crypto\CryptoTools.cs" />
     <Compile Include="Crypto\PasswordToolkit.cs" />
     <Compile Include="Crypto\Rfc2898.cs" />
