@@ -12,10 +12,6 @@ namespace BlackBarLabs.Security.Tokens
 {
     public static class JwtTools
     {
-        //public static readonly RSACryptoServiceProvider Secret;
-        //public static readonly string Issuer;
-        
-
         public static bool ValidateClaim(this IEnumerable<Claim> claims,
             string claimId, string expectedValue, Action<string> onFail)
         {
@@ -71,17 +67,6 @@ namespace BlackBarLabs.Security.Tokens
             return ValidateClaim(claims, ClaimIds.Session, expectedValue, onFail);
         }
 
-        private static RSACryptoServiceProvider RSAFromConfig(string configSettingName)
-        {
-            var secretAsRSAXmlBase64 = ConfigurationManager.AppSettings[configSettingName];
-            if (string.IsNullOrEmpty(secretAsRSAXmlBase64))
-                throw new SystemException("RSA public key was not found in the configuration file. This is the RSA public key used to validate the provided JWT.");
-            var xml = CryptoTools.UrlBase64Decode(secretAsRSAXmlBase64);
-            var rsaProvider = new RSACryptoServiceProvider();
-            rsaProvider.FromXmlString(xml);
-            return rsaProvider;
-        }
-
         public static bool TryParseJwtSecurityToken(
             this string jwtEncodedString,
             string configNameOfRsaKeyToValidateAgainst,
@@ -90,7 +75,7 @@ namespace BlackBarLabs.Security.Tokens
         {
             var handler = new JwtSecurityTokenHandler();
             
-            var rsaProvider = RSAFromConfig(configNameOfRsaKeyToValidateAgainst);
+            var rsaProvider = RSA.RSAFromConfig(configNameOfRsaKeyToValidateAgainst);
             var securityToken = new RsaSecurityToken(rsaProvider);
             
             var issuer = ConfigurationManager.AppSettings[configNameOfIssuerToValidateAgainst];
@@ -164,7 +149,7 @@ namespace BlackBarLabs.Security.Tokens
             IEnumerable<Claim> claims,
             string configNameOfIssuer = "issuer", string configNameOfRSAKey = "secret")
         {
-            var rsaProvider = RSAFromConfig(configNameOfRSAKey);
+            var rsaProvider = RSA.RSAFromConfig(configNameOfRSAKey);
             var securityKey = new RsaSecurityKey(rsaProvider);
 
             var issuer = ConfigurationManager.AppSettings[configNameOfIssuer];
