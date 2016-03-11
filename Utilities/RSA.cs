@@ -15,7 +15,7 @@ namespace BlackBarLabs.Security
         {
             var secretAsRSAXmlBase64 = ConfigurationManager.AppSettings[configSettingName];
             if (string.IsNullOrEmpty(secretAsRSAXmlBase64))
-                throw new SystemException("RSA public key was not found in the configuration file. This is the RSA public key used to validate the provided JWT.");
+                throw new SystemException("RSA public key was not found in the configuration file. AppSetting = " + configSettingName);
             var xml = CryptoTools.UrlBase64Decode(secretAsRSAXmlBase64);
             var rsaProvider = new RSACryptoServiceProvider();
             rsaProvider.FromXmlString(xml);
