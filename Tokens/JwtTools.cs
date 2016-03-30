@@ -112,7 +112,7 @@ namespace BlackBarLabs.Security.Tokens
         }
 
         public static string CreateToken(Guid sessionId, Guid authorizationId, double tokenExpirationInMinutes,
-             int role, string configNameOfIssuer = "issuer", string configNameOfRSAKey = "secret")
+             int role, string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
             var claims = new[] {
                 new Claim(ClaimIds.Session, sessionId.ToString()),
@@ -129,7 +129,7 @@ namespace BlackBarLabs.Security.Tokens
         }
 
         public static string CreateToken(Guid sessionId, Guid authorizationId, double tokenExpirationInMinutes,
-            string configNameOfIssuer = "issuer", string configNameOfRSAKey = "secret")
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
             var claims = new[] {
                 new Claim(ClaimIds.Session, sessionId.ToString()),
@@ -147,7 +147,7 @@ namespace BlackBarLabs.Security.Tokens
         public static string CreateToken(string clientId,
             DateTimeOffset? issued, DateTimeOffset? expires,
             IEnumerable<Claim> claims,
-            string configNameOfIssuer = "issuer", string configNameOfRSAKey = "secret")
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
             var rsaProvider = RSA.RSAFromConfig(configNameOfRSAKey);
             var securityKey = new RsaSecurityKey(rsaProvider);
