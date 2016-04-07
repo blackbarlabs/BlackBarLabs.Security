@@ -103,6 +103,7 @@
     <Compile Include="SecurityCheck.cs" />
     <Compile Include="SecurityCheckpoint.cs" />
     <Compile Include="SecurityClearance.cs" />
+    <Compile Include="Tokens\VoucherTools.cs" />
     <Compile Include="Utilities\RSA.cs" />
   </ItemGroup>
   <ItemGroup>
