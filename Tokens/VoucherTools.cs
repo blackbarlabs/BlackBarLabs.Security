@@ -19,34 +19,47 @@ namespace BlackBarLabs.Security.Tokens
         }
 
         public static T ValidateToken<T>(string accessToken,
-            Func<Guid, T> success, Func<T> tokenExpired, Func<T> invalidSignature)
+            Func<Guid, T> success, Func<string, T> invalidToken, Func<string, T> tokenExpired, Func<string, T> invalidSignature)
         {
             #region Parse token
 
-            var tokenBytes = Convert.FromBase64String(accessToken);
+            long validUntilTicks = 0;
+            var authId = default(Guid);
+            var validUntilUtc = default(DateTime);
+            var providedSignature = new byte[] {};
+            try
+            {
+                var tokenBytes = Convert.FromBase64String(accessToken);
 
-            var guidSize = Guid.NewGuid().ToByteArray().Length;
-            var dateTimeSize = sizeof(long);
+                var guidSize = Guid.NewGuid().ToByteArray().Length;
+                var dateTimeSize = sizeof(long);
 
-            var authIdData = tokenBytes.Take(guidSize).ToArray();
-            var validUntilUtcData = tokenBytes.Skip(guidSize).Take(dateTimeSize).ToArray();
-            var validUntilTicks = BitConverter.ToInt64(validUntilUtcData, 0);
+                var authIdData = tokenBytes.Take(guidSize).ToArray();
+                var validUntilUtcData = tokenBytes.Skip(guidSize).Take(dateTimeSize).ToArray();
+                validUntilTicks = BitConverter.ToInt64(validUntilUtcData, 0);
 
-            var authId = new Guid(authIdData);
-            var validUntilUtc = new DateTime(validUntilTicks, DateTimeKind.Utc);
-            var providedSignature = tokenBytes.Skip(guidSize + dateTimeSize).ToArray();
-
+                authId = new Guid(authIdData);
+                validUntilUtc = new DateTime(validUntilTicks, DateTimeKind.Utc);
+                providedSignature = tokenBytes.Skip(guidSize + dateTimeSize).ToArray();
+            }
+            catch (Exception ex)
+            {
+                invalidToken(ex.Message);
+            }
             #endregion
 
             if (validUntilTicks < DateTime.UtcNow.Ticks)
-                return tokenExpired();
+                return tokenExpired("Token has expired");
 
             byte[] signatureData;
             var hashedData = ComputeHashData(authId, validUntilUtc, out signatureData);
 
             var trustedVoucher = RSA.RSAFromConfig("BlackbarLabs.Security.CredentialProvider.Voucher.key.pub");
             if (!trustedVoucher.VerifyHash(hashedData, CryptoConfig.MapNameToOID("SHA256"), providedSignature))
-                return invalidSignature();
+                return invalidSignature("Cannot verify hash - authId: " + authId +
+                   "   validUntilUtc: " + validUntilUtc +
+                   "   hashedData: " + hashedData +
+                   "   providedSignature: " + providedSignature);
 
             return success(authId);
         }
