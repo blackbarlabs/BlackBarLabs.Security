@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using BlackBarLabs.Security.Crypto;
 using Microsoft.Owin.Security;
+using Microsoft.WindowsAzure;
 
 namespace BlackBarLabs.Security.Tokens
 {
@@ -78,7 +79,7 @@ namespace BlackBarLabs.Security.Tokens
             var rsaProvider = RSA.RSAFromConfig(configNameOfRsaKeyToValidateAgainst);
             var securityToken = new RsaSecurityToken(rsaProvider);
             
-            var issuer = ConfigurationManager.AppSettings[configNameOfIssuerToValidateAgainst];
+            var issuer =  CloudConfigurationManager.GetSetting(configNameOfIssuerToValidateAgainst);
             if (string.IsNullOrEmpty(issuer)) throw new SystemException("Issuer was not found in the configuration file");
 
             var validationParameters = new TokenValidationParameters()
@@ -152,7 +153,7 @@ namespace BlackBarLabs.Security.Tokens
             var rsaProvider = RSA.RSAFromConfig(configNameOfRSAKey);
             var securityKey = new RsaSecurityKey(rsaProvider);
 
-            var issuer = ConfigurationManager.AppSettings[configNameOfIssuer];
+            var issuer =  CloudConfigurationManager.GetSetting(configNameOfIssuer);
             if (string.IsNullOrEmpty(issuer))
                 throw new SystemException("Issuer was not found in the configuration file");
             
