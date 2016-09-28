@@ -79,7 +79,7 @@ namespace BlackBarLabs.Security.Tokens
             var rsaProvider = RSA.RSAFromConfig(configNameOfRsaKeyToValidateAgainst);
             var securityToken = new RsaSecurityToken(rsaProvider);
             
-            var issuer =  CloudConfigurationManager.GetSetting(configNameOfIssuerToValidateAgainst);
+            var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuerToValidateAgainst);
             if (string.IsNullOrEmpty(issuer)) throw new SystemException("Issuer was not found in the configuration file");
 
             var validationParameters = new TokenValidationParameters()
@@ -153,7 +153,7 @@ namespace BlackBarLabs.Security.Tokens
             var rsaProvider = RSA.RSAFromConfig(configNameOfRSAKey);
             var securityKey = new RsaSecurityKey(rsaProvider);
 
-            var issuer =  CloudConfigurationManager.GetSetting(configNameOfIssuer);
+            var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuer);
             if (string.IsNullOrEmpty(issuer))
                 throw new SystemException("Issuer was not found in the configuration file");
             
