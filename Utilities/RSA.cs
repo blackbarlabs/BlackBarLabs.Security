@@ -14,7 +14,7 @@ namespace BlackBarLabs.Security
     {
         public static RSACryptoServiceProvider RSAFromConfig(string configSettingName)
         {
-            var secretAsRSAXmlBase64 =  CloudConfigurationManager.GetSetting(configSettingName);
+            var secretAsRSAXmlBase64 = Microsoft.Azure.CloudConfigurationManager.GetSetting(configSettingName);
             if (string.IsNullOrEmpty(secretAsRSAXmlBase64))
                 throw new SystemException("RSA public key was not found in the configuration file. AppSetting = " + configSettingName);
             var xml = CryptoTools.UrlBase64Decode(secretAsRSAXmlBase64);
