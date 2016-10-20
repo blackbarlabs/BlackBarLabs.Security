@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IdentityModel.Tokens;
 using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using BlackBarLabs.Security.Crypto;
-using Microsoft.Owin.Security;
-using Microsoft.WindowsAzure;
 
 namespace BlackBarLabs.Security.Tokens
 {
@@ -68,6 +63,13 @@ namespace BlackBarLabs.Security.Tokens
             return ValidateClaim(claims, ClaimIds.Session, expectedValue, onFail);
         }
 
+        public static IEnumerable<Claim> ParseJwtSecurityToken(string securityClientJwtString)
+        {
+            var securityClientJwt = new System.IdentityModel.Tokens.JwtSecurityToken(securityClientJwtString);
+            var claimsDict = securityClientJwt.Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
+            return claimsDict.Select(claim => new Claim(claim.Key, claim.Value));
+        }
+
         public static bool TryParseJwtSecurityToken(
             this string jwtEncodedString,
             string configNameOfRsaKeyToValidateAgainst,
@@ -104,13 +106,13 @@ namespace BlackBarLabs.Security.Tokens
             }
         }
 
-        public static string CreateToken(AuthenticationTicket data)
-        {
-            string clientId = data.Properties.Dictionary.ContainsKey("audience") ? data.Properties.Dictionary["audience"] : null;
-            var issued = data.Properties.IssuedUtc;
-            var expires = data.Properties.ExpiresUtc;
-            return CreateToken(clientId, issued, expires, data.Identity.Claims);
-        }
+        //public static string CreateToken(AuthenticationTicket data)
+        //{
+        //    string clientId = data.Properties.Dictionary.ContainsKey("audience") ? data.Properties.Dictionary["audience"] : null;
+        //    var issued = data.Properties.IssuedUtc;
+        //    var expires = data.Properties.ExpiresUtc;
+        //    return CreateToken(clientId, issued, expires, data.Identity.Claims);
+        //}
 
         public static string CreateToken(Guid sessionId, Guid authorizationId, double tokenExpirationInMinutes,
              int role, string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")

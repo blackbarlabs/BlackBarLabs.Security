@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Owin.Security.DataHandler.Encoder;
 
 namespace BlackBarLabs.Security.Crypto
 {
@@ -24,12 +23,12 @@ namespace BlackBarLabs.Security.Crypto
         public static string UrlBase64Encode(string text)
         {
             var bytes = Encoding.UTF8.GetBytes(text);
-            return TextEncodings.Base64Url.Encode(bytes);
+            return System.Web.HttpServerUtility.UrlTokenEncode(bytes);
         }
 
         public static string UrlBase64Decode(string text)
         {
-            var bytes = TextEncodings.Base64Url.Decode(text);
+            var bytes = System.Web.HttpServerUtility.UrlTokenDecode(text);
             return Encoding.UTF8.GetString(bytes);
         }
 
