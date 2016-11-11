@@ -6,20 +6,35 @@ namespace BlackBarLabs.Security.Tokens
 {
     public static class VoucherTools
     {
-        public static string GenerateToken(Guid authId, DateTime validUntilUtc)
+        public static TResult GenerateToken<TResult>(Guid authId, DateTime validUntilUtc,
+            Func<string, TResult> success,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting)
         {
             byte[] signatureData;
             var hashedData = ComputeHashData(authId, validUntilUtc, out signatureData);
 
-            var trustedVoucherPrivateKey = RSA.RSAFromConfig("BlackbarLabs.Security.CredentialProvider.Voucher.key");
-            var signature = trustedVoucherPrivateKey.SignHash(hashedData, CryptoConfig.MapNameToOID("SHA256"));
+            var result = RSA.FromConfig("BlackbarLabs.Security.Voucher.key",
+                (trustedVoucherPrivateKey) =>
+                {
+                    var signature = trustedVoucherPrivateKey.SignHash(hashedData, CryptoConfig.MapNameToOID("SHA256"));
 
-            var tokenBytes = signatureData.Concat(signature).ToArray();
-            return Convert.ToBase64String(tokenBytes);
+                    var tokenBytes = signatureData.Concat(signature).ToArray();
+                    var token = Convert.ToBase64String(tokenBytes);
+                    return success(token);
+                },
+                missingConfigurationSetting,
+                invalidConfigurationSetting);
+            return result;
         }
 
-        public static T ValidateToken<T>(string accessToken,
-            Func<Guid, T> success, Func<string, T> invalidToken, Func<string, T> tokenExpired, Func<string, T> invalidSignature)
+        public static TResult ValidateToken<TResult>(string accessToken,
+            Func<Guid, TResult> success,
+            Func<string, TResult> invalidToken,
+            Func<string, TResult> tokenExpired,
+            Func<string, TResult> invalidSignature,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting)
         {
             #region Parse token
 
@@ -54,14 +69,20 @@ namespace BlackBarLabs.Security.Tokens
             byte[] signatureData;
             var hashedData = ComputeHashData(authId, validUntilUtc, out signatureData);
 
-            var trustedVoucher = RSA.RSAFromConfig("BlackbarLabs.Security.CredentialProvider.Voucher.key.pub");
-            if (!trustedVoucher.VerifyHash(hashedData, CryptoConfig.MapNameToOID("SHA256"), providedSignature))
-                return invalidSignature("Cannot verify hash - authId: " + authId +
-                   "   validUntilUtc: " + validUntilUtc +
-                   "   hashedData: " + hashedData +
-                   "   providedSignature: " + providedSignature);
+            var result = RSA.FromConfig("BlackbarLabs.Security.Voucher.key.pub",
+                (trustedVoucher) =>
+                {
+                    if (!trustedVoucher.VerifyHash(hashedData, CryptoConfig.MapNameToOID("SHA256"), providedSignature))
+                        return invalidSignature("Cannot verify hash - authId: " + authId +
+                           "   validUntilUtc: " + validUntilUtc +
+                           "   hashedData: " + hashedData +
+                           "   providedSignature: " + providedSignature);
 
-            return success(authId);
+                    return success(authId);
+                },
+                missingConfigurationSetting,
+                invalidConfigurationSetting);
+            return result;
         }
 
         private static byte[] ComputeHashData(Guid authId, DateTime validUntilUtc, out byte[] signatureData)

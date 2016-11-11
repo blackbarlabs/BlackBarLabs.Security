@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 
@@ -8,164 +11,207 @@ namespace BlackBarLabs.Security.Tokens
 {
     public static class JwtTools
     {
-        public static bool ValidateClaim(this IEnumerable<Claim> claims,
-            string claimId, string expectedValue, Action<string> onFail)
+        public static TResult GetSessionId<TResult>(this Claim[] claims,
+            Func<Guid, TResult> found,
+            Func<TResult> notFound = default(Func<TResult>),
+            Func<TResult> invalid = default(Func<TResult>))
         {
-            var claim = claims.FirstOrDefault(x => x.Type == claimId);
-            if (default(Claim) == claim)
-            {
-                onFail(default(string));
-                return false;
-            }
-            if(String.Compare(claim.Value, expectedValue) != 0)
-            {
-                onFail(claim.Value);
-                return false;
-            }
-            return true;
+            return claims.GetGuidValue(ClaimIds.Session,
+                found, notFound, invalid);
+        }
+        public static TResult GetAuthId<TResult>(this Claim[] claims,
+            Func<Guid, TResult> found,
+            Func<TResult> notFound = default(Func<TResult>),
+            Func<TResult> invalid = default(Func<TResult>))
+        {
+            return claims.GetGuidValue(ClaimIds.Authorization,
+                found, notFound, invalid);
         }
 
-        public static bool ValidateClaim(this IEnumerable<Claim> claims,
-            string claimId, Guid expectedValue, Action<string> onFail)
+        public static TResult GetGuidValue<TResult>(this Claim[] claims, string key,
+            Func<Guid, TResult> found,
+            Func<TResult> notFound = default(Func<TResult>),
+            Func<TResult> invalid = default(Func<TResult>))
         {
-            var claim = claims.FirstOrDefault(x => x.Type == claimId);
-            if (default(Claim) == claim)
-            {
-                onFail(default(string));
-                return false;
-            }
-
-            Guid claimGuid;
-            if (!Guid.TryParse(claim.Value, out claimGuid))
-            {
-                onFail(claim.Value);
-                return false;
-            }
-
-            if (claimGuid != expectedValue)
-            {
-                onFail(claim.Value);
-                return false;
-            }
-
-            return true;
+            if (default(Func<TResult>) == notFound)
+                notFound = () => { throw new Exception("Session not found in claims"); };
+            if (default(Func<TResult>) == invalid)
+                invalid = notFound;
+            return claims
+                .Where(claim => claim.Type.DoesEqual(key))
+                .FirstOrDefault(
+                    (claim) =>
+                    {
+                        Guid sessionId;
+                        if (Guid.TryParse(claim.Value, out sessionId))
+                            return found(sessionId);
+                        return invalid();
+                    },
+                    notFound);
         }
 
-        public static bool ValidateAuthorizationClaim(this IEnumerable<Claim> claims,
-            Guid expectedValue, Action<string> onFail)
-        {
-            return ValidateClaim(claims, ClaimIds.Authorization, expectedValue, onFail);
-        }
-
-        public static bool ValidateSessionClaim(this IEnumerable<Claim> claims,
-            Guid expectedValue, Action<string> onFail)
-        {
-            return ValidateClaim(claims, ClaimIds.Session, expectedValue, onFail);
-        }
-
-        public static IEnumerable<Claim> ParseJwtSecurityToken(string securityClientJwtString)
-        {
-            var securityClientJwt = new System.IdentityModel.Tokens.JwtSecurityToken(securityClientJwtString);
-            var claimsDict = securityClientJwt.Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
-            return claimsDict.Select(claim => new Claim(claim.Key, claim.Value));
-        }
-
-        public static bool TryParseJwtSecurityToken(
+        public static TResult ParseToken<TResult>(
             this string jwtEncodedString,
-            string configNameOfRsaKeyToValidateAgainst,
-            string configNameOfIssuerToValidateAgainst,
-            out Claim [] claims)
+            Func<Claim [], TResult> success,
+            Func<string, TResult> invalidToken,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuerToValidateAgainst = "BlackBarLabs.Security.issuer",
+            string configNameOfRsaKeyToValidateAgainst = "BlackBarLabs.Security.key")
         {
-            var handler = new JwtSecurityTokenHandler();
-            
-            var rsaProvider = RSA.RSAFromConfig(configNameOfRsaKeyToValidateAgainst);
-            var securityToken = new RsaSecurityToken(rsaProvider);
-            
-            var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuerToValidateAgainst);
-            if (string.IsNullOrEmpty(issuer)) throw new SystemException("Issuer was not found in the configuration file");
+            var result = RSA.FromConfig(configNameOfRsaKeyToValidateAgainst,
+                rsaProvider =>
+                {
+                    var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuerToValidateAgainst);
+                    if (string.IsNullOrEmpty(issuer))
+                        return missingConfigurationSetting(configNameOfIssuerToValidateAgainst);
 
-            var validationParameters = new TokenValidationParameters()
-            {
-                ValidateAudience = false,
-                ValidIssuer = issuer,
-                IssuerSigningTokens = new RsaSecurityToken [] { securityToken },
-                RequireExpirationTime = true,
-            };
+                    var validationParameters = new TokenValidationParameters()
+                    {
+                        ValidateAudience = false,
+                        ValidIssuer = issuer,
+                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaProvider),
+                        RequireExpirationTime = true,
+                    };
 
-            try
-            {
-                SecurityToken validatedToken;
-                var principal = handler.ValidateToken(jwtEncodedString, validationParameters, out validatedToken);
-                claims = principal.Claims.ToArray();
-                return true;
-            }
-            catch (ArgumentException)
-            {
-                claims = default(Claim[]);
-                return false;
-            }
+                    try
+                    {
+                        Microsoft.IdentityModel.Tokens.SecurityToken validatedToken;
+                        var handler = new JwtSecurityTokenHandler();
+                        var principal = handler.ValidateToken(jwtEncodedString, validationParameters, out validatedToken);
+                        // TODO: Check if token is still valid at current date / time?
+                        var claims = principal.Claims.ToArray();
+                        return success(claims);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        return invalidToken(ex.Message);
+                    }
+                },
+                missingConfigurationSetting,
+                invalidConfigurationSetting);
+            return result;
         }
 
-        //public static string CreateToken(AuthenticationTicket data)
-        //{
-        //    string clientId = data.Properties.Dictionary.ContainsKey("audience") ? data.Properties.Dictionary["audience"] : null;
-        //    var issued = data.Properties.IssuedUtc;
-        //    var expires = data.Properties.ExpiresUtc;
-        //    return CreateToken(clientId, issued, expires, data.Identity.Claims);
-        //}
-
-        public static string CreateToken(Guid sessionId, Guid authorizationId, double tokenExpirationInMinutes,
-             int role, string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+        public static TResult CreateToken<TResult>(Guid sessionId, Uri scope,
+            TimeSpan duration,
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
+            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
-            var claims = new[] {
-                new Claim(ClaimIds.Session, sessionId.ToString()),
-                new Claim(ClaimIds.Role, role.ToString()),
-                new Claim(ClaimIds.Authorization, authorizationId.ToString()) };
-            
-            var issued = DateTime.UtcNow;
-            var validForDuration = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(tokenExpirationInMinutes);
-            var jwtToken = CreateToken(sessionId.ToString("N"),
-                issued, validForDuration, claims,
+            return CreateToken(sessionId, scope, duration, default(IDictionary<string, string>),
+                tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
                 configNameOfIssuer, configNameOfRSAKey);
-            return jwtToken;
-
         }
 
-        public static string CreateToken(Guid sessionId, Guid authorizationId, double tokenExpirationInMinutes,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+        public static TResult CreateToken<TResult>(Guid sessionId, Uri scope,
+            TimeSpan duration,
+            IDictionary<string, string> claims,
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
+            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
-            var claims = new[] {
-                new Claim(ClaimIds.Session, sessionId.ToString()),
-                new Claim(ClaimIds.Authorization, authorizationId.ToString()) };
+            var claimsAuth = (IEnumerable<Claim>)new[] {
+                new Claim(ClaimIds.Session, sessionId.ToString()), };
+            var claimsCrypt = claims.NullToEmpty().Select(kvp => new Claim(kvp.Key, kvp.Value));
 
             var issued = DateTime.UtcNow;
-            var validForDuration = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(tokenExpirationInMinutes);
-            var jwtToken = CreateToken(sessionId.ToString("N"),
-                issued, validForDuration, claims,
+            var result = CreateToken(scope,
+                issued, duration, claimsAuth.Concat(claimsCrypt),
+                tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
                 configNameOfIssuer, configNameOfRSAKey);
-            return jwtToken;
-
+            return result;
         }
 
-        public static string CreateToken(string clientId,
-            DateTimeOffset? issued, DateTimeOffset? expires,
+        public static TResult CreateToken<TResult>(Guid sessionId, Guid authId, Uri scope,
+            TimeSpan duration,
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
+            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+        {
+            return CreateToken(sessionId, authId, scope, duration, default(IDictionary<string, string>),
+                tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
+                configNameOfIssuer, configNameOfRSAKey);
+        }
+
+        public static TResult CreateToken<TResult>(Guid sessionId, Guid authId, Uri scope,
+            TimeSpan duration,
+            IDictionary<string, string> claims,
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
+            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+        {
+            var claimsAuth = (IEnumerable<Claim>)new[] {
+                new Claim(ClaimIds.Session, sessionId.ToString()),
+                new Claim(ClaimIds.Authorization, authId.ToString()) };
+            var claimsCrypt = claims.NullToEmpty().Select(kvp => new Claim(kvp.Key, kvp.Value));
+
+            var issued = DateTime.UtcNow;
+            var result = CreateToken(scope,
+                issued, duration, claimsAuth.Concat(claimsCrypt),
+                tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
+                configNameOfIssuer, configNameOfRSAKey);
+            return result;
+        }
+
+        public static TResult CreateToken<TResult>(Uri scope,
+            DateTime issued, TimeSpan duration,
             IEnumerable<Claim> claims,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer", string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
+            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
         {
-            var rsaProvider = RSA.RSAFromConfig(configNameOfRSAKey);
-            var securityKey = new RsaSecurityKey(rsaProvider);
+            return RSA.FromConfig(configNameOfRSAKey,
+                (rsaProvider) =>
+                {
+                    var securityKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaProvider);
 
-            var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuer);
-            if (string.IsNullOrEmpty(issuer))
-                throw new SystemException("Issuer was not found in the configuration file");
-            
-            var token = new JwtSecurityToken(issuer, clientId, claims, issued.Value.UtcDateTime, expires.Value.UtcDateTime,
-                new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256Signature,
-                    SecurityAlgorithms.Sha256Digest));
+                    var issuer = Microsoft.Azure.CloudConfigurationManager.GetSetting(configNameOfIssuer);
+                    if (string.IsNullOrWhiteSpace(issuer))
+                        return missingConfigurationSetting(configNameOfIssuer);
 
-            var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.WriteToken(token);
-            return jwt;
+                    var signature = new Microsoft.IdentityModel.Tokens.SigningCredentials(
+                        securityKey, Microsoft.IdentityModel.Tokens.SecurityAlgorithms.RsaSha256Signature);
+                    var token = new JwtSecurityToken(issuer, scope.AbsoluteUri, claims, issued, (issued + duration), signature);
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwt = handler.WriteToken(token);
+                    return tokenCreated(jwt);
+                },
+                missingConfigurationSetting,
+                invalidConfigurationSetting);
+
+        }
+
+        private static bool DoesEqual(this string strA, string strB, bool ignoreCase = false)
+        {
+            return String.Compare(strA, strB, ignoreCase) == 0;
+        }
+
+        private static IEnumerable<TSource> NullToEmpty<TSource>(
+            this IEnumerable<TSource> source)
+        {
+            if (default(IEnumerable<TSource>) == source)
+                return new TSource[] { };
+            return source;
+        }
+        
+        public static TResult FirstOrDefault<T, TResult>(this IEnumerable<T> items,
+            Func<T, TResult> found,
+            Func<TResult> notFound)
+        {
+            if (items.Any())
+                return found(items.First());
+            return notFound();
         }
     }
 }

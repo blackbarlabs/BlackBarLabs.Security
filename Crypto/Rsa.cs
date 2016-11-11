@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BlackBarLabs.Security.Crypto
 {
-    public class Rsa
+    public static class Rsa
     {
 
         public static byte[] ComputeHashData(string data, out byte[] signatureData)
@@ -19,7 +19,7 @@ namespace BlackBarLabs.Security.Crypto
         }
 
 
-        public static byte[] RSAEncrypt(byte[] DataToEncrypt, RSACryptoServiceProvider rsaProvider)
+        public static byte[] RSAEncrypt(this byte[] DataToEncrypt, RSACryptoServiceProvider rsaProvider)
         {
             try
             {

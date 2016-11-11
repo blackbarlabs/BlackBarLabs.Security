@@ -12,15 +12,56 @@ namespace BlackBarLabs.Security
 {
     public static class RSA
     {
-        public static RSACryptoServiceProvider RSAFromConfig(string configSettingName)
+        public static TResult FromConfig<TResult>(string configSettingName,
+            Func<RSACryptoServiceProvider, TResult> success,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting)
         {
             var secretAsRSAXmlBase64 = Microsoft.Azure.CloudConfigurationManager.GetSetting(configSettingName);
-            if (string.IsNullOrEmpty(secretAsRSAXmlBase64))
-                throw new SystemException("RSA public key was not found in the configuration file. AppSetting = " + configSettingName);
-            var xml = CryptoTools.UrlBase64Decode(secretAsRSAXmlBase64);
-            var rsaProvider = new RSACryptoServiceProvider();
-            rsaProvider.FromXmlString(xml);
-            return rsaProvider;
+            if (string.IsNullOrWhiteSpace(secretAsRSAXmlBase64))
+                return missingConfigurationSetting(configSettingName);
+
+            try
+            {
+                var bytes = Convert.FromBase64String(secretAsRSAXmlBase64);
+                var xml = Encoding.ASCII.GetString(bytes);
+                var rsaProvider = new RSACryptoServiceProvider();
+                try
+                {
+                    rsaProvider.FromXmlString(xml);
+                    return success(rsaProvider);
+                }
+                catch (CryptographicException ex)
+                {
+                    return invalidConfigurationSetting(configSettingName, ex.Message);
+                }
+            } catch(FormatException ex)
+            {
+                return invalidConfigurationSetting(configSettingName, ex.Message);
+            }
+        }
+
+        public static TResult Generate<TResult>(Func<string, string, TResult> success)
+        {
+            var cspParams = new CspParameters()
+            {
+                ProviderType = 1, // PROV_RSA_FULL
+                Flags = CspProviderFlags.UseArchivableKey,
+                KeyNumber = (int)KeyNumber.Exchange,
+            };
+            var rsaProvider = new RSACryptoServiceProvider(2048, cspParams);
+
+            // Export public key
+            var publicKey = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes(
+                    rsaProvider.ToXmlString(false)));
+            
+            // Export private/public key pair
+            var privateKey = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes(
+                    rsaProvider.ToXmlString(true)));
+
+            return success(publicKey, privateKey);
         }
     }
 }

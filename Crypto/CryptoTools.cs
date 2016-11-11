@@ -28,8 +28,9 @@ namespace BlackBarLabs.Security.Crypto
 
         public static string UrlBase64Decode(string text)
         {
-            var bytes = System.Web.HttpServerUtility.UrlTokenDecode(text);
-            return Encoding.UTF8.GetString(bytes);
+            return Microsoft.IdentityModel.Tokens.Base64UrlEncoder.Decode(text);
+            //var bytes = System.Web.HttpServerUtility.UrlTokenDecode(text);
+            //return Encoding.UTF8.GetString(bytes);
         }
 
         public static SecurityToken GetRsaSecurityToken(string base64EncodedValue)
