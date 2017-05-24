@@ -70,6 +70,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppSettings.cs" />
     <Compile Include="ClaimIds.cs" />
     <Compile Include="Crypto\Rsa.cs" />
     <Compile Include="Tokens\JwtTools.cs" />

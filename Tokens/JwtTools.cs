@@ -56,7 +56,7 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> invalidToken,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuerToValidateAgainst = "BlackBarLabs.Security.issuer",
+            string configNameOfIssuerToValidateAgainst = EastFive.Security.AppSettings.TokenIssuer,
             string configNameOfRsaKeyToValidateAgainst = "BlackBarLabs.Security.key")
         {
             var result = RSA.FromConfig(configNameOfRsaKeyToValidateAgainst,
@@ -98,8 +98,8 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> tokenCreated,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
-            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
             return CreateToken(sessionId, scope, duration, default(IDictionary<string, string>),
                 tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
@@ -112,8 +112,8 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> tokenCreated,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
-            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
             var claimsAuth = (IEnumerable<Claim>)new[] {
                 new Claim(ClaimIds.Session, sessionId.ToString()), };
@@ -132,8 +132,8 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> tokenCreated,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
-            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
             return CreateToken(sessionId, authId, scope, duration, default(IDictionary<string, string>),
                 tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
@@ -146,8 +146,8 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> tokenCreated,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
-            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
             var claimsAuth = (IEnumerable<Claim>)new[] {
                 new Claim(ClaimIds.Session, sessionId.ToString()),
@@ -168,8 +168,8 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> tokenCreated,
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
-            string configNameOfIssuer = "BlackBarLabs.Security.issuer",
-            string configNameOfRSAKey = "BlackBarLabs.Security.secret")
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
             return RSA.FromConfig(configNameOfRSAKey,
                 (rsaProvider) =>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EastFive.Security;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 
@@ -14,7 +15,7 @@ namespace BlackBarLabs.Security.Tokens
             byte[] signatureData;
             var hashedData = ComputeHashData(authId, validUntilUtc, out signatureData);
 
-            var result = RSA.FromConfig("BlackbarLabs.Security.Voucher.key",
+            var result = RSA.FromConfig(AppSettings.CredentialProviderVoucherKey,
                 (trustedVoucherPrivateKey) =>
                 {
                     var signature = trustedVoucherPrivateKey.SignHash(hashedData, CryptoConfig.MapNameToOID("SHA256"));
@@ -69,7 +70,7 @@ namespace BlackBarLabs.Security.Tokens
             byte[] signatureData;
             var hashedData = ComputeHashData(authId, validUntilUtc, out signatureData);
 
-            var result = RSA.FromConfig("BlackbarLabs.Security.Voucher.key.pub",
+            var result = RSA.FromConfig(AppSettings.CredentialProviderVoucherKey,
                 (trustedVoucher) =>
                 {
                     if (!trustedVoucher.VerifyHash(hashedData, CryptoConfig.MapNameToOID("SHA256"), providedSignature))
