@@ -87,6 +87,10 @@ namespace BlackBarLabs.Security.Tokens
                     {
                         return invalidToken(ex.Message);
                     }
+                    catch (Microsoft.IdentityModel.Tokens.SecurityTokenExpiredException ex)
+                    {
+                        return invalidToken(ex.Message);
+                    }
                 },
                 missingConfigurationSetting,
                 invalidConfigurationSetting);
