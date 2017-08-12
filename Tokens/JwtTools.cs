@@ -57,7 +57,7 @@ namespace BlackBarLabs.Security.Tokens
             Func<string, TResult> missingConfigurationSetting,
             Func<string, string, TResult> invalidConfigurationSetting,
             string configNameOfIssuerToValidateAgainst = EastFive.Security.AppSettings.TokenIssuer,
-            string configNameOfRsaKeyToValidateAgainst = "BlackBarLabs.Security.key")
+            string configNameOfRsaKeyToValidateAgainst = EastFive.Security.AppSettings.TokenKey)
         {
             var result = RSA.FromConfig(configNameOfRsaKeyToValidateAgainst,
                 rsaProvider =>
