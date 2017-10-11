@@ -87,7 +87,15 @@ namespace BlackBarLabs.Security.Tokens
                     {
                         return invalidToken(ex.Message);
                     }
+                    catch (Microsoft.IdentityModel.Tokens.SecurityTokenInvalidIssuerException ex)
+                    {
+                        return invalidToken(ex.Message);
+                    }
                     catch (Microsoft.IdentityModel.Tokens.SecurityTokenExpiredException ex)
+                    {
+                        return invalidToken(ex.Message);
+                    }
+                    catch (Microsoft.IdentityModel.Tokens.SecurityTokenException ex)
                     {
                         return invalidToken(ex.Message);
                     }
