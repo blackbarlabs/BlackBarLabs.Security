@@ -161,10 +161,24 @@ namespace BlackBarLabs.Security.Tokens
             string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
             string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
         {
-            var claimsAuth = (IEnumerable<Claim>)new[] {
+            var claimsCrypt = claims.NullToEmpty().Select(kvp => new Claim(kvp.Key, kvp.Value));
+            return CreateToken(sessionId, authId, scope, duration, claimsCrypt, tokenCreated, missingConfigurationSetting, invalidConfigurationSetting,
+                configNameOfIssuer, configNameOfRSAKey);
+        }
+
+        public static TResult CreateToken<TResult>(Guid sessionId, Guid authId, Uri scope,
+            TimeSpan duration,
+            IEnumerable<Claim> claims,
+            Func<string, TResult> tokenCreated,
+            Func<string, TResult> missingConfigurationSetting,
+            Func<string, string, TResult> invalidConfigurationSetting,
+            string configNameOfIssuer = EastFive.Security.AppSettings.TokenIssuer,
+            string configNameOfRSAKey = EastFive.Security.AppSettings.TokenKey)
+        {
+            var claimsAuth = new[] {
                 new Claim(ClaimIds.Session, sessionId.ToString()),
                 new Claim(ClaimIds.Authorization, authId.ToString()) };
-            var claimsCrypt = claims.NullToEmpty().Select(kvp => new Claim(kvp.Key, kvp.Value));
+            var claimsCrypt = claims.NullToEmpty();
 
             var issued = DateTime.UtcNow;
             var result = CreateToken(scope,
