@@ -19,6 +19,7 @@ namespace BlackBarLabs.Security.Tokens
             return claims.GetGuidValue(ClaimIds.Session,
                 found, notFound, invalid);
         }
+
         public static TResult GetAuthId<TResult>(this Claim[] claims,
             Func<Guid, TResult> found,
             Func<TResult> notFound = default(Func<TResult>),
@@ -79,6 +80,10 @@ namespace BlackBarLabs.Security.Tokens
                         Microsoft.IdentityModel.Tokens.SecurityToken validatedToken;
                         var handler = new JwtSecurityTokenHandler();
                         var principal = handler.ValidateToken(jwtEncodedString, validationParameters, out validatedToken);
+
+                        if (validatedToken.ValidFrom < new DateTime(2018, 1, 17, 0, 0, 0, DateTimeKind.Utc))
+                            return invalidToken("The Website has been updated and requires a browser reload");
+
                         // TODO: Check if token is still valid at current date / time?
                         var claims = principal.Claims.ToArray();
                         return success(claims);
