@@ -70,11 +70,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppSettings.cs" />
-    <Compile Include="ClaimIds.cs" />
     <Compile Include="Crypto\Aes.cs" />
     <Compile Include="Crypto\Rsa.cs" />
-    <Compile Include="SecureGuid.cs" />
-    <Compile Include="Tokens\JwtTools.cs" />
     <Compile Include="Crypto\CryptoTools.cs" />
     <Compile Include="Crypto\PasswordToolkit.cs" />
     <Compile Include="Crypto\Rfc2898.cs" />
@@ -82,7 +79,6 @@
     <Compile Include="SecurityCheck.cs" />
     <Compile Include="SecurityCheckpoint.cs" />
     <Compile Include="SecurityClearance.cs" />
-    <Compile Include="Tokens\VoucherTools.cs" />
     <Compile Include="Utilities\RSA.cs" />
   </ItemGroup>
   <ItemGroup>
