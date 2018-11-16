@@ -73,7 +73,6 @@
     <Compile Include="ClaimIds.cs" />
     <Compile Include="Crypto\Aes.cs" />
     <Compile Include="Crypto\Rsa.cs" />
-    <Compile Include="SecureGuid.cs" />
     <Compile Include="Tokens\JwtTools.cs" />
     <Compile Include="Crypto\CryptoTools.cs" />
     <Compile Include="Crypto\PasswordToolkit.cs" />
